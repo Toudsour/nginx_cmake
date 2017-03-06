@@ -1,45 +1,49 @@
 #!/usr/bin/env bash
-NGX_CMAKE_FILE=$NGX_OBJS/CMakeList.txt
+NGX_CMAKE_FILE=$NGX_OBJS/CMakeLists.txt
 NGX_CMAKE_TMP=$NGX_OBJS/tmp
 
 #output includes
-ngx_incs=`echo $CORE_INCS $NGX_OBJS $HTTP_INCS $MAIL_INCS\
+cmake_ngx_incs=`echo $CORE_INCS $NGX_OBJS $HTTP_INCS $MAIL_INCS\
              | sed -e "s/  *\([^ ][^ ]*\)/$ngx_regex_cont\1/g" \
                    -e "s/\//$ngx_regex_dirsep/g"`
 cat << END                                  > $NGX_CMAKE_TMP
 
+cmake_minimum_required(VERSION 3.6)
+
 include_directories(
-    $ngx_incs)
+    .
+    $cmake_ngx_incs)
 END
 
 #output src
-ngx_src="$CORE_SRCS $HTTP_SRCS $MAIL_SRCS $NGX_MISC_SRCS $NGX_ADDON_SRCS $NGX_SHARED_SRCS"
+cmake_ngx_src="$CORE_SRCS $HTTP_SRCS $MAIL_SRCS $NGX_MISC_SRCS $NGX_ADDON_SRCS $NGX_SHARED_SRCS"
 
-ngx_src=`echo $ngx_src | sed -e "s/  *\([^ ][^ ]*\)/$ngx_regex_cont\1/g"\
+cmake_ngx_src=`echo $cmake_ngx_src | sed -e "s/  *\([^ ][^ ]*\)/$ngx_regex_cont\1/g"\
                              -e "s/\//$ngx_regex_dirsep/g"`
 
 cat << END                                    >> $NGX_CMAKE_TMP
 
 set(SOURCE_FILES
-    $ngx_src)
+    ngx_modules.c
+    $cmake_ngx_src)
 
 END
 
 #output target
 cat << END                                   >> $NGX_CMAKE_TMP
 
-add_executable(nginx SOURCE_FILES)
+add_executable(nginx \${SOURCE_FILES})
 
 END
 
 
 #output lib
-CORE_LIBS=`echo ${CORE_LIBS} | grep -o "lib[a-z]*\.a"`
-CORE_LIBS=`echo ${CORE_LIBS} | sed -e "s/lib//g" -e "s/\.a//g"`
+echo ${CORE_LIBS}
+CMAKE_CORE_LIBS=`echo ${CORE_LIBS} | sed -e "s/-l//g"`
 
 cat << END                                   >> $NGX_CMAKE_TMP
 
-target_link_libraries(nginx $CORE_LIBS)
+target_link_libraries(nginx $CMAKE_CORE_LIBS)
 
 END
 
